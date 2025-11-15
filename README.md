@@ -1,4 +1,4 @@
-# 🧠 FullyConnectedNN – BloodMNIST grid search
+# FullyConnectedNN – BloodMNIST grid search
 
 ## Setup
 
