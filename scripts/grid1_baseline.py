@@ -1,14 +1,43 @@
+"""
+grid1_baseline.py
+=================
+
+
+Purpose:
+    General grid search to investigate:
+    - Which loss-function works best (softmax or hinge)
+    - Which optimizer works best (sgd, momentum or adam)
+    - Which learning rates, hidden-layer sizes, and L2-regularization strengths are reasonable
+
+What the script does:
+    * Loads a subset of the BloodMNIST dataset (train/val) and standardizes ther features
+    * Systematically varies:
+        - loss             ∈ {softmax, hinge}
+        - optimizer        ∈ {adam, sgd, momentum}
+        - learning_rate    ∈ {0.001, 0.005, 0.01}
+        - hidden_size      ∈ {128, 256, 512}
+        - reg_strength     ∈ {1e-4, 1e-3, 1e-2}
+    * Saves results incrementally in csv (partial and final), incl val_acc and loss
+
+Idea:
+    This script is a broad baseline grid search, that is meant to give a overwiev of
+    which combinations of loss/optimizer/lr/hidden/reg are the most promising.
+    The best combinations from this grid search can be used as basis for more targeted experimnets 
+    (like in grids_2, where architecture and choices are hardcoded for my selected configurations). 
+"""
+
+
 # scripts/grid1_baseline.py
 import argparse, itertools, numpy as np, pandas as pd
 from pathlib import Path
 from src.nn import FullyConnectedNN
 
-# (valgfrit) MedMNIST loader for at gøre scriptet selvkørende
+# (optional) MedMNIST loads to make the script self-contained
 def load_data(sample_train=5000, sample_val=500, seed=0):
     try:
         from medmnist import BloodMNIST
     except ImportError as e:
-        raise SystemExit("Installér medmnist: pip install medmnist") from e
+        raise SystemExit("Please install medmnist: pip install medmnist") from e
 
     train = BloodMNIST(split="train", download=True, size=28)
     val   = BloodMNIST(split="val",   download=True, size=28)
@@ -23,7 +52,7 @@ def load_data(sample_train=5000, sample_val=500, seed=0):
     Xtr, ytr = Xtr[tr_idx], ytr[tr_idx]
     Xva, yva = Xva[va_idx], yva[va_idx]
 
-    # reshape + standardisering (mean/std fra TRAIN!):
+    # reshape + standardization (mean/std from TRAIN only!):
     Xtr = Xtr.reshape(len(Xtr), -1).astype(np.float32)
     Xva = Xva.reshape(len(Xva), -1).astype(np.float32)
     mean = Xtr.mean(axis=0); std = Xtr.std(axis=0) + 1e-7
@@ -77,7 +106,7 @@ def main(args):
             'final_train_loss': final_train_loss
         }
         results.append(row)
-        # skriv løbende (så man har noget hvis kørslen afbrydes)
+        # write incrementally (so we keep results even if the run is interrupted)
         pd.DataFrame(results).to_csv(outdir / "grid1_partial.csv", index=False)
         print(f"{loss:8s} | {opt:8s} | lr={lr:<6} hidden={h:<3} reg={reg:<6} → "
               f"val_acc={val_acc:.3f}, val_loss={final_val_loss:.4f}")
